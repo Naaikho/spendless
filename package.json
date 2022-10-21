@@ -1,0 +1,83 @@
+{
+  "name": "spendless",
+  "version": "0.0.1",
+  "private": true,
+  "homepage": "./",
+  "dependencies": {
+    "@electron": "^21.0.1",
+    "@electron/remote": "^2.0.8",
+    "@fortawesome/fontawesome-svg-core": "^6.2.0",
+    "@fortawesome/free-regular-svg-icons": "^6.2.0",
+    "@fortawesome/free-solid-svg-icons": "^6.2.0",
+    "@fortawesome/react-fontawesome": "^0.2.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "babel-plugin-macros": "^3.1.0",
+    "find-process": "^1.4.7",
+    "jquery": "^3.6.1",
+    "jszip": "^3.10.1",
+    "ps-node": "^0.1.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-motion": "^0.5.2",
+    "react-router-dom": "^6.4.1",
+    "react-scripts": "5.0.1",
+    "sass": "^1.55.0",
+    "shell": "^0.9.4",
+    "socket.io-client": "^4.5.2",
+    "web-vitals": "^2.1.4"
+  },
+  "main": "electron-starter.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "electron-dev": "set ELECTRON_START_URL=http://localhost:3000 && set ELECTRON_DEV=true && electron .",
+    "electron": "electron .",
+    "package": "electron-builder build --win -c.extraMetadata.main=build/electron-starter.js --publish never"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^21.0.1",
+    "electron-builder": "^23.6.0"
+  },
+  "build": {
+    "files": [
+        "build/**/*",
+        "node_modules/**/*"
+    ],
+    "win": {
+      "icon": "build/spendless-icon.ico",
+        "target": [
+            "nsis"
+        ]
+    },
+    "mac": {
+      "icon": "build/spendless-icon.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "repo": "spendless",
+      "owner": "Naikho"
+    }
+  }
+}
