@@ -3,6 +3,8 @@
 Spendless is a music poroduction project manager that helps you to manage your projects and your music production workflow.
 Spendless make a workspace in your computer to save, edit, create and delete your projects, he can also show you the bpm, the key and the duration of your project.
 
+> the file `env.json` is actually not implemented with the source code for keep the beta restricted to test
+
 ---
 
 # Interface
