@@ -5,6 +5,10 @@ Spendless make a workspace in your computer to save, edit, create and delete you
 
 > the file `env.json` is actually not implemented with the source code for keep the beta restricted to test
 
+
+
+# [Download](https://github.com/Naaikho/spendless/releases/tag/Alpha)
+
 ---
 
 # Interface
