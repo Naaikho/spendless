@@ -9,8 +9,6 @@ Spendless make a workspace in your computer to save, edit, create and delete you
 
 # [Download](https://github.com/Naaikho/spendless/releases/tag/Alpha)
 
----
-
 # Interface
 ### `1` Fast Create Project
 Create a project and start production quickly and easly. Auto name, bmp, artist, etc (all informations are implemented in the flp directly)
