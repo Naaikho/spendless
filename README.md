@@ -7,7 +7,7 @@ Spendless make a workspace in your computer to save, edit, create and delete you
 
 
 
-# [Download](https://github.com/Naaikho/spendless/releases/tag/Alpha)
+# [Download](https://github.com/Naaikho/spendless/releases/tag/0.0.2)
 
 # Interface
 ### `1` Fast Create Project
