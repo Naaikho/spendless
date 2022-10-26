@@ -174,8 +174,12 @@ app.whenReady().then(() => {
 
     // custom reload
     globalShortcut.register('CommandOrControl+R', () => {});
-    // custom hard reload
-    globalShortcut.register('CommandOrControl+Shift+R', () => {});
+    if(!process.env.ELECTRON_START_URL){
+        // custom hard reload
+        globalShortcut.register('CommandOrControl+Shift+R', () => {});
+        // custom dev tools
+        globalShortcut.register('CommandOrControl+Shift+I', () => {});
+    }
 
     app.on('activate', function () {
         // On macOS it's common to re-create a window in the app when the

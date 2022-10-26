@@ -430,6 +430,36 @@ $item-cian: rgb(115, 211, 235);
             }
         }
     }
+
+    &.dark{
+        background-color: $soft-dark;
+        color: $light;
+        
+        &:hover{
+            background-color: $soft-dark-over;
+            color: $soft-dark;
+        }
+        &:active{
+            background-color: $soft-dark-alpha;
+            color: $soft-dark;
+            transform: scale(0.95);
+        }
+
+        &.less{
+            background-color: $soft-dark-over;
+            color: $soft-dark;
+
+            &:hover{
+                background-color: $soft-dark;
+                color: $light;
+            }
+            &:active{
+                background-color: $soft-dark-alpha;
+                color: $light;
+                transform: scale(0.95);
+            }
+        }
+    }
     
     &.danger{
         background-color: $danger-color;
@@ -2329,12 +2359,12 @@ html{
                 height: 25px;
                 width: 100%;
                 display: flex;
-                justify-content: center;
+                justify-content: space-evenly;
                 align-items: center;
                 position: absolute;
                 bottom: 0;
                 left: 0;
-                cursor: pointer;
+                color: $light-over;
 
                 .nk-swip-footer-text{
                     transition: 0.15s;
@@ -2342,10 +2372,14 @@ html{
                     font-family: $primary-font;
                     font-weight: bold;
                     color: $light-over;
-                }
+                    cursor: pointer;
+                    height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    flex-grow: 1;
 
-                &:hover{
-                    .nk-swip-footer-text{
+                    &:hover{
                         color: $primary-color;
                     }
                 }
@@ -2363,296 +2397,288 @@ html{
 
 
         .nk-project-file{
-            transition: 0.15s;
-            padding: 15px;
-            border-radius: 15px;
-            background-color: $soft-dark-glass;
             width: 300px;
             flex-shrink: 0;
             margin: 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: start;
-            align-items: flex-start;
-            cursor: pointer;
             position: relative;
             flex-grow: 1;
-            overflow: hidden;
+            // overflow: hidden;
 
-            .nk-wait-overlay{
-                transition: 0.25s;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                position: absolute;
-                top: 0;
-                left: 0;
+            .nk-project-box{
+                transition: 0.15s;
+                padding: 15px;
+                border-radius: 15px;
+                background-color: $soft-dark-glass;
                 width: 100%;
                 height: 100%;
-                background-color: rgba(0,0,0,0.25);
-                backdrop-filter: blur(2px);
-                color: $light;
-                z-index: 10;
-                font-size: 3rem;
-                opacity: 0;
-                pointer-events: none;
-            }
-
-            &.disable{
-                transform: scale(0.9);
-                // opacity: 0.5;
-                pointer-events: none;
-
-                .nk-wait-overlay{
-                    opacity: 1;
-                }
-            }
-
-            .nk-complet-version{
-                pointer-events: none;
-                transition: 0.15s;
-                background-color: $primary-color;
-                padding: 5px 15px;
-                border-radius: 8px;
-                font-family: $primary-font;
-                font-weight: bold;
-                color: $dark;
-                position: absolute;
-                bottom: -20px;
-                left: 50%;
-                transform: translateX(-50%);
-                font-size: 0.8rem;
-                opacity: 0;
-                z-index: 5;
-            }
-
-            &:hover{
-                background-color: $layer-dark-over;
-
-                .nk-complet-version{
-                    bottom: 25px;
-                    opacity: 1;
-                }
-            }
-
-            .nk-schema-box{
-                transition: 0.1s;
-                padding: 10px;
-                border-radius: 10px;
-                height: 75px;
-                width: 100%;
                 display: flex;
-                justify-content: center;
-                align-items: center;
-                // color: $dark;
-                color: $light;
+                justify-content: stretch;
+                align-items: stretch;
+                cursor: pointer;
                 position: relative;
                 overflow: hidden;
-                flex-shrink: 0;
-                margin-bottom: 15px;
 
-                .nk-icon-proj{
-                    transition: 0.25s;
-                    font-size: 2rem;
-                    z-index: 2;
-                    text-shadow: 0 0 15px $primary-color;
-                }
-
-                .nk-bg-land{
-                    transition: 0.1s;
-                    z-index: 1;
-                    // color: $dark;
-                    font-size: 2rem;
+                .nk-complet-version{
+                    pointer-events: none;
+                    transition: 0.15s;
+                    background-color: $primary-color;
+                    padding: 5px 15px;
+                    border-radius: 8px;
+                    font-family: $primary-font;
+                    font-weight: bold;
+                    color: $dark;
                     position: absolute;
+                    bottom: -20px;
                     left: 50%;
-                    top: 50%;
-                    width: 150%;
-                    opacity: 0.2;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    flex-wrap: wrap;
-                    transform: translate(-50%, -50%);
-                    // animation: name duration timing-function delay iteration-count direction fill-mode;
-
-                    span{
-                        margin: 5px;
-                        transform: rotateZ(-15deg);
-                    }
+                    transform: translateX(-50%);
+                    font-size: 0.8rem;
+                    opacity: 0;
+                    z-index: 5;
                 }
+                // &:active{
+                //     opacity: 0.75;
+                //     transform: scale(0.98);
+                // }
 
-                .nk-edit-layer{
+                .nk-wait-overlay{
+                    transition: 0.25s;
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    color: $soft-dark;
-                    font-size: 1.1rem;
-                    font-family: $title-font;
                     position: absolute;
-                    right: 5px;
-                    bottom: 5px;
-                    // anime pulse
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0,0,0,0.25);
+                    backdrop-filter: blur(2px);
+                    color: $light;
+                    z-index: 10;
+                    font-size: 3rem;
                     opacity: 0;
-                    z-index: 2;
+                    pointer-events: none;
                 }
-            }
 
-            &:active{
                 .nk-schema-box{
-                    transform: scale(0.9);
-                }
-            }
+                    transition: 0.1s;
+                    padding: 10px;
+                    border-radius: 10px;
+                    width: 80px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    // color: $dark;
+                    color: $light;
+                    position: relative;
+                    overflow: hidden;
+                    flex-shrink: 0;
 
-            &:hover{
-                .nk-schema-box{
                     .nk-icon-proj{
-                        font-size: 2.5rem;
+                        transition: 0.25s;
+                        font-size: 2rem;
+                        z-index: 2;
+                        text-shadow: 0 0 15px $primary-color;
                     }
+
                     .nk-bg-land{
-                        animation: moveWall 7s ease-in-out infinite;
-                        
+                        transition: 0.1s;
+                        z-index: 1;
+                        // color: $dark;
+                        font-size: 1.2rem;
+                        position: absolute;
+                        left: 50%;
+                        top: 50%;
+                        width: 150%;
+                        opacity: 0.2;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        flex-wrap: wrap;
+                        transform: translate(-50%, -50%);
+                        // animation: name duration timing-function delay iteration-count direction fill-mode;
+
                         span{
-                            animation: wave 25s ease-in-out infinite;
+                            margin: 3px;
+                            transform: rotateZ(-15deg);
+                        }
+                    }
+
+                    .nk-edit-layer{
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        color: $soft-dark;
+                        font-size: 1.1rem;
+                        font-family: $title-font;
+                        position: absolute;
+                        right: 5px;
+                        bottom: 5px;
+                        // anime pulse
+                        opacity: 0;
+                        z-index: 2;
+                    }
+                }
+
+                .nk-project-informations{
+                    padding: 10px;
+                    position: relative;
+                    padding-bottom: 40px;
+                    flex-grow: 1;
+                    flex-shrink: 0;
+                    margin-left: 10px;
+                    width: calc(100% - 90px);
+
+                    .nk-artist{
+                        font-family: $brand-font;
+                        font-weight: 500;
+                        color: $soft-light-glass;
+                        font-size: 0.8rem;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        width: 70%;
+                    }
+
+                    .proj-title-box{
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        width: 100%;
+                        margin-bottom: 10px;
+
+                        .proj-title{
+                            font-size: 1rem;
+                            font-family: $primary-font;
+                            font-weight: bold;
+                            color: $light;
+                            overflow: hidden;
+                            line-height: 1.5rem;
+                            white-space: nowrap;
+                            text-overflow: ellipsis;
+                            padding-right: 10px;
+                        }
+
+                        .proj-version{
+                            font-size: 0.65rem;
+                            font-family: $primary-font;
+                            font-weight: bold;
+                            color: $primary-color;
+                            overflow: hidden;
+                            line-height: 1.5rem;
+                            white-space: nowrap;
+                            text-overflow: ellipsis;
+                            flex-shrink: 0;
+                            padding: 0 8px;
+                            border-radius: 5px;
+                            background-color: $primary-color-over;
+                        }
+                    }
+
+                    .proj-genre{
+                        display: inline-block;
+                        padding: 5px 5px;
+                        border-radius: 5px;
+                        background-color: $soft-light-over;
+                        // font-weight: bold;
+                        font-family: $current-font;
+                        font-size: 0.7rem;
+                        color: $soft-light;
+                        margin-bottom: 5px;
+                        max-width: 60%;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+
+                    .proj-bpm{
+                        margin-bottom: 5px;
+                        width: min-content;
+                        font-size: 0.8rem;
+                        white-space: nowrap;
+                        font-family: $primary-font;
+                        color: $soft-light;
+
+                        span{
+                            display: inline-block;
+                            padding: 3px 5px;
+                            border-radius: 5px;
+                            background-color: $soft-light-over;
+                            color: $soft-light;
+                            font-weight: bold;
+                        }
+                    }
+
+                    .proj-desc-box{
+                        width: 100%;
+                        height: 30px;
+
+                        .proj-description{
+                            overflow: hidden;
+                            display: -webkit-box;
+                            -webkit-line-clamp: 2;
+                            -webkit-box-orient: vertical;
+                            opacity: 0.75;
+                            color: $light;
+                            font-family: $secondary-font;
+                            font-size: 0.7rem;
+                            line-height: 1rem;
+                            letter-spacing: 1px;
+                            word-break: break-word;
+                            width: 100%;
+                        }
+                    }
+
+
+
+                    .proj-date,
+                    .proj-worktime{
+                        position: absolute;
+                        left: 10px;
+                        bottom: 0;
+                        font-size: 0.7rem;
+                        color: $light;
+                        font-family: $primary-font;
+                        font-weight: bold;
+                        letter-spacing: 2px;
+                        opacity: 0.5;
+                    }
+                    .proj-worktime{
+                        bottom: 15px;
+                    }
+                }
+
+                &:hover{
+                    background-color: $layer-dark-over;
+    
+                    .nk-complet-version{
+                        bottom: 25px;
+                        opacity: 1;
+                    }
+
+                    .nk-schema-box{
+                        .nk-icon-proj{
+                            font-size: 2.5rem;
+                        }
+                        .nk-bg-land{
+                            animation: moveWall 7s ease-in-out infinite;
+                            
+                            span{
+                                animation: wave 25s ease-in-out infinite;
+                            }
                         }
                     }
                 }
-            }
-            // &:active{
-            //     opacity: 0.75;
-            //     transform: scale(0.98);
-            // }
 
-            &.open{
-                .nk-schema-box{
-                    .nk-edit-layer{
-                        animation: pulse 2s infinite ease-in-out;
+                &:active{
+                    .nk-schema-box{
+                        transform: scale(0.9);
                     }
-                }
-            }
-
-            .nk-project-informations{
-                padding: 10px;
-                position: relative;
-                padding-bottom: 40px;
-                width: 100%;
-                flex-grow: 1;
-                flex-shrink: 0;
-
-                .nk-artist{
-                    font-family: $brand-font;
-                    font-weight: 500;
-                    color: $soft-light-glass;
-                    font-size: 0.8rem;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                    width: 70%;
-                }
-
-                .proj-title-box{
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    width: 100%;
-                    margin-bottom: 10px;
-
-                    .proj-title{
-                        font-size: 1rem;
-                        font-family: $primary-font;
-                        font-weight: bold;
-                        color: $light;
-                        overflow: hidden;
-                        line-height: 1.5rem;
-                        white-space: nowrap;
-                        text-overflow: ellipsis;
-                        padding-right: 10px;
-                    }
-
-                    .proj-version{
-                        font-size: 0.65rem;
-                        font-family: $primary-font;
-                        font-weight: bold;
-                        color: $primary-color;
-                        overflow: hidden;
-                        line-height: 1.5rem;
-                        white-space: nowrap;
-                        text-overflow: ellipsis;
-                        flex-shrink: 0;
-                        padding: 0 8px;
-                        border-radius: 5px;
-                        background-color: $primary-color-over;
-                    }
-                }
-
-                .proj-genre{
-                    display: inline-block;
-                    padding: 5px 5px;
-                    border-radius: 5px;
-                    background-color: $soft-light-over;
-                    // font-weight: bold;
-                    font-family: $current-font;
-                    font-size: 0.7rem;
-                    color: $soft-light;
-                    margin-bottom: 5px;
-                    max-width: 60%;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }
-
-                .proj-bpm{
-                    margin-bottom: 5px;
-                    width: min-content;
-                    font-size: 0.8rem;
-                    white-space: nowrap;
-                    font-family: $primary-font;
-                    color: $soft-light;
-
-                    span{
-                        display: inline-block;
-                        padding: 3px 5px;
-                        border-radius: 5px;
-                        background-color: $soft-light-over;
-                        color: $soft-light;
-                        font-weight: bold;
-                    }
-                }
-
-                .proj-description{
-                    overflow: hidden;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    opacity: 0.75;
-                    color: $light;
-                    font-family: $secondary-font;
-                    font-size: 0.8rem;
-                    line-height: 1rem;
-                    letter-spacing: 1px;
-                }
-
-
-
-                .proj-date,
-                .proj-worktime{
-                    position: absolute;
-                    left: 10px;
-                    bottom: 0;
-                    font-size: 0.7rem;
-                    color: $light;
-                    font-family: $primary-font;
-                    font-weight: bold;
-                    letter-spacing: 2px;
-                    opacity: 0.5;
-                }
-                .proj-worktime{
-                    bottom: 15px;
                 }
             }
 
             .proj-options-box{
                 transition: 0.15s;
-                opacity: 0;
+                // opacity: 0;
                 position: absolute;
                 right: 10px;
                 bottom: 10px;
@@ -2660,6 +2686,7 @@ html{
                 display: flex;
                 justify-content: end;
                 align-items: center;
+                border-radius: 500px;
 
                 .proj-btn{
                     transition: 0.15s;
@@ -2759,11 +2786,43 @@ html{
                 }
             }
 
-            &:hover{
+            &.disable{
+                .nk-project-box{
+                    transform: scale(0.9);
+                    // opacity: 0.5;
+                    pointer-events: none;
+
+                    .nk-wait-overlay{
+                        opacity: 1;
+                    }
+                }
+
                 .proj-options-box{
-                    opacity: 1;
+                    opacity: 0;
+                    pointer-events: none;
                 }
             }
+
+            &.open{
+                .nk-project-box{
+                    .nk-schema-box{
+                        .nk-edit-layer{
+                            animation: pulse 2s infinite ease-in-out;
+                        }
+                    }
+                }
+
+                .proj-options-box{
+                    opacity: 0;
+                    pointer-events: none;
+                }
+            }
+
+            // &:hover{
+            //     .proj-options-box{
+            //         opacity: 1;
+            //     }
+            // }
         }
 
 

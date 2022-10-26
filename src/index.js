@@ -24,7 +24,6 @@ const AppContextEmbed = () => {
     const [haveData, setHaveData] = React.useState(true);
     const [popup, setPopup] = React.useState(null);
     const [envPage, setEnvPage] = React.useState(0);
-    const [bar, setBar] = React.useState(0);
     const [confPopup, setConfPopup] = React.useState(null);
     const [projectPopup, setProjectPopup] = React.useState(null);
     const [currentProject, setCurrentProject] = React.useState([]);
@@ -35,7 +34,7 @@ const AppContextEmbed = () => {
     });
     const [currentProcessed, setCurrentProcessed] = React.useState("");
 
-    const app = {cfg,setCfg,preferences,setPreferences,user,setUser,icons,setIcons,colors,setColors,menuOpen,setMenuOpen,menuSelected,setMenuSelected,projects,setProjects,haveData,setHaveData,popup,setPopup,envPage,setEnvPage,bar,setBar,confPopup,setConfPopup,projectPopup,setProjectPopup,currentProject,setCurrentProject,currentUpload,setCurrentUpload,menuStats,setMenuStats,currentProcessed,setCurrentProcessed};
+    const app = {cfg,setCfg,preferences,setPreferences,user,setUser,icons,setIcons,colors,setColors,menuOpen,setMenuOpen,menuSelected,setMenuSelected,projects,setProjects,haveData,setHaveData,popup,setPopup,envPage,setEnvPage,confPopup,setConfPopup,projectPopup,setProjectPopup,currentProject,setCurrentProject,currentUpload,setCurrentUpload,menuStats,setMenuStats,currentProcessed,setCurrentProcessed};
 
     React.useEffect(() => {
 

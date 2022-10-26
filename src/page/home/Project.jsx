@@ -4,6 +4,7 @@ import { solid } from '@fortawesome/fontawesome-svg-core/import.macro';
 import AppContext from '../../inc/AppContext';
 import GhostExit from '../../components/Ghost';
 import { DeletePopup, ExportPopup, ProjectPopup } from '../../components/Popup';
+import { createPopup } from '../../inc/Function.inc';
 
 const ipcRenderer = window.require('electron').ipcRenderer;
 
@@ -14,6 +15,11 @@ const Project = (props) => {
     const [openMenu, setOpenMenu] = React.useState(false);
     const [prevAudio, setPrevAudio] = React.useState(null);
     const [playBtn, setPlayBtn] = React.useState(solid("play"));
+
+    const mouseCoor = {
+        x: 0,
+        y: 0
+    };
 
     let color = app.colors[props.color];
     let icon = app.icons[props.icon];
@@ -43,7 +49,7 @@ const Project = (props) => {
             >
 
                 <button
-                    className={"nk-btn abs play less xsm " + ((props.preview === "")? "hide" : "")}
+                    className={"nk-btn dark less abs play xsm " + ((props.preview === "")? "hide" : "")}
                     onClick={(e) => {
                         e.stopPropagation();
 
@@ -92,58 +98,75 @@ const Project = (props) => {
                     <FontAwesomeIcon icon={playBtn} />
                 </button>
 
-                <div className="nk-wait-overlay">
-                    <FontAwesomeIcon icon={solid("circle-notch")} spin />
-                </div>
-
-                <div className="nk-complet-version noselect">
-                    {props.version}
-                </div>
-
-                <div className={"nk-schema-box noselect " + color}>
-                    <div className="nk-bg-land">
-                        {land}
+                <div
+                    className="nk-project-box"
+                    // onMouseMove={(e) => {
+                    //     mouseCoor.x = e.clientX;
+                    //     mouseCoor.y = e.clientY;
+                    //     console.log(e.clientX, e.clientY);
+                    // }}
+                    // onRightClick 
+                    onContextMenu={(e) => {
+                        e.preventDefault();
+                        setOpenMenu(true);
+                    }}
+                >
+                    <div className="nk-wait-overlay">
+                        <FontAwesomeIcon icon={solid("circle-notch")} spin />
                     </div>
-                    <div className="nk-edit-layer">
-                        <FontAwesomeIcon icon={solid('cloud-arrow-up')} />
-                    </div>
-                    <span className="nk-icon-proj">
-                        <FontAwesomeIcon icon={icon} />
-                    </span>
-                </div>
 
-                <div className="nk-project-informations noselect">
-                    <h6 className="nk-artist noselect">
-                        {props.artist}
-                    </h6>
-                    <div className="proj-title-box noselect">
-                        <h5 className="proj-title">
-                            {props.name}
-                        </h5>
-                        <small className="proj-version noselect">
-                            {s_ver}
+                    <div className="nk-complet-version noselect">
+                        {props.version}
+                    </div>
+                    <div className={"nk-schema-box noselect " + color}>
+                        <div className="nk-bg-land">
+                            {land}
+                        </div>
+                        <div className="nk-edit-layer">
+                            <FontAwesomeIcon icon={solid('pen')} />
+                        </div>
+                        <span className="nk-icon-proj">
+                            <FontAwesomeIcon icon={icon} />
+                        </span>
+                    </div>
+
+                    <div className="nk-project-informations noselect">
+                        <h6 className="nk-artist noselect">
+                            {props.artist}
+                        </h6>
+                        <div className="proj-title-box noselect">
+                            <h5 className="proj-title">
+                                {props.name}
+                            </h5>
+                            <small className="proj-version noselect">
+                                {s_ver}
+                            </small>
+                        </div>
+                        <div className="nk-col-12 nk-row between nopad noselect">
+                            <p className="proj-bpm">
+                                Bpm: <span>{props.tempo}</span>
+                            </p>
+                            <p className="proj-genre">
+                                {props.genre || "Unknown"}
+                            </p>
+                        </div>
+                        <div className="proj-desc-box">
+                            <p className="proj-description noselect">
+                                {props.description}
+                            </p>
+                        </div>
+                        <small className="proj-worktime noselect">
+                            Work time: {props.workTime}
+                        </small>
+                        <small className="proj-date noselect">
+                            Start: {props.date}
                         </small>
                     </div>
-                    <div className="nk-col-12 nk-row between nopad noselect">
-                        <p className="proj-bpm">
-                            Bpm: <span>{props.tempo}</span>
-                        </p>
-                        <p className="proj-genre">
-                            {props.genre || "Unknown"}
-                        </p>
-                    </div>
-                    <p className="proj-description noselect">
-                        {props.description}
-                    </p>
-                    <small className="proj-worktime noselect">
-                        Work time: {props.workTime}
-                    </small>
-                    <small className="proj-date noselect">
-                        Start: {props.date}
-                    </small>
                 </div>
 
-                <div className={"proj-options-box " + ((openMenu)? "open" : "")}>
+                <div
+                    className={"proj-options-box " + ((openMenu)? "open" : "")}
+                >
                     <button
                         className="proj-btn option"
                         onClick={(e) => {
@@ -184,7 +207,7 @@ const Project = (props) => {
                             Edit
                         </button>
                         <button
-                            className={"nk-pt-btn " + ((app.menuStats.send && !app.currentProject.includes(props.id))? "" : "disable")}
+                            className={"nk-pt-btn " + ((!app.currentProject.includes(props.id))? "" : "disable")}
                             onClick={(e)=>{
                                 e.stopPropagation();
                                 setOpenMenu(false);
@@ -202,10 +225,15 @@ const Project = (props) => {
                             Export
                         </button>
                         <button
-                            className={"nk-pt-btn " + ((app.menuStats.send && !app.currentProject.includes(props.id))? "" : "disable")}
+                            className={"nk-pt-btn " + ((!app.currentProject.includes(props.id))? "" : "disable")}
                             onClick={(e)=>{
                                 e.stopPropagation();
                                 setOpenMenu(false);
+
+                                if(!app.menuStats.send){
+                                    createPopup(app, "ok", props.name + " added to the queue ! ⏳");
+                                }
+
                                 ipcRenderer.send("upProject", props.id);
                             }}
                         >

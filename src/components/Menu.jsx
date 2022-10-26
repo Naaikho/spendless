@@ -13,10 +13,12 @@ const Menu = () => {
     const app = useContext(AppContext);
 
     const [onReload, setOnReload] = React.useState(false);
+    const [bar, setBar] = React.useState(0);
 
     useEffect(() => {
         ipcRenderer.on("loading", (e, data) => {
-            app.setBar(parseInt(data));
+            console.log(data);
+            setBar(parseInt(data));
         });
     }, []);
 
@@ -36,14 +38,14 @@ const Menu = () => {
                     </div>
                 </div>
 
-                <div className={"nk-loading-container " + ((app.bar > 0)? "show" : "")}>
+                <div className={"nk-loading-container " + ((bar > 0)? "show" : "")}>
                     <div className="nk-load-circle noselect">
                         <FontAwesomeIcon icon={solid("circle-notch")} spin />
                     </div>
                     <div className="nk-loading-bar noselect">
                         <div
                             className="nk-loading-fill"
-                            style={{width: app.bar + "%"}}
+                            style={{width: bar + "%"}}
                         ></div>
                     </div>
                     <div className="nk-load-hover noselect">
@@ -165,6 +167,15 @@ const Menu = () => {
                         }}
                     >
                         By Naikho
+                    </span>
+                    <span className="noselect">•</span>
+                    <span
+                        className="nk-swip-footer-text"
+                        onClick={() => {
+                            ipcRenderer.send('openLink', "http://patreon.naikho.com");
+                        }}
+                    >
+                        Patreon
                     </span>
                 </div>
             </div>
