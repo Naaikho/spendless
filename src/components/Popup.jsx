@@ -310,6 +310,32 @@ const DeletePopup = (props) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const ProjectPopup = (props) => {
 
     const app = useContext(AppContext);
@@ -339,6 +365,8 @@ const ProjectPopup = (props) => {
 
     const [open, setOpen] = useState(null);
     const [saveBtn, setSaveBtn] = useState(props.btn);
+
+    const [needUpload, setNeedUpload] = useState(false);
 
     function makeLand(ico){
         let l = [];
@@ -541,6 +569,7 @@ const ProjectPopup = (props) => {
                                             placeholder='Title'
                                             onChange={(e)=>{
                                                 setTitle(e.target.value);
+                                                setNeedUpload(true);
                                             }}
                                         />
                                     </div>
@@ -552,6 +581,7 @@ const ProjectPopup = (props) => {
                                             placeholder='Artist(s)'
                                             onChange={(e)=>{
                                                 setArtist(e.target.value);
+                                                setNeedUpload(true);
                                             }}
                                         />
                                     </div>
@@ -564,6 +594,7 @@ const ProjectPopup = (props) => {
                                                 placeholder='Tempo'
                                                 onChange={(e)=>{
                                                     setTempo(e.target.value);
+                                                    setNeedUpload(true);
                                                 }}
                                             />
                                         </div>
@@ -575,6 +606,7 @@ const ProjectPopup = (props) => {
                                                 placeholder='Genre'
                                                 onChange={(e)=>{
                                                     setGenre(e.target.value);
+                                                    setNeedUpload(true);
                                                 }}
                                             />
                                         </div>
@@ -591,6 +623,7 @@ const ProjectPopup = (props) => {
                                     defaultValue={comment}
                                     onChange={(e) => {
                                         setComment(e.target.value);
+                                        setNeedUpload(true);
                                     }}
                                 >
                                 </textarea>
@@ -613,6 +646,7 @@ const ProjectPopup = (props) => {
                                             color: color,
                                             icon: icon,
                                             comment: comment,
+                                            update: needUpload,
                                         }).then((res) => {
                                             if(res){
                                                 if(props.close){
@@ -650,6 +684,39 @@ const ProjectPopup = (props) => {
         </Motion>
     );
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

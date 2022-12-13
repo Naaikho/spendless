@@ -13,12 +13,31 @@ const Menu = () => {
     const app = useContext(AppContext);
 
     const [onReload, setOnReload] = React.useState(false);
-    const [bar, setBar] = React.useState(0);
+    // const [bar, setBar] = React.useState([]);
+
+    const [importIcon, setImportIcon] = React.useState(<FontAwesomeIcon icon={solid('file-arrow-down')} />);
+    const [canImport, setCanImport] = React.useState(true);
 
     useEffect(() => {
-        ipcRenderer.on("loading", (e, data) => {
-            console.log(data);
-            setBar(parseInt(data));
+    //     ipcRenderer.on("loading", (e, data, id) => {
+    //         console.log(data);
+    //         setBar([
+    //             ...bar,
+    //             {
+    //                 id: parseInt(id),
+    //                 value: parseInt(data)
+    //             }
+    //         ]);
+    //     });
+        
+        ipcRenderer.on("setSend", (e, data) => {
+            if(data.action === "import"){
+                setImportIcon(<FontAwesomeIcon icon={solid('circle-notch')} spin />);
+                setCanImport(false);
+            } else if(data.action === "unimport"){
+                setImportIcon(<FontAwesomeIcon icon={solid('file-arrow-down')} />);
+                setCanImport(true);
+            }
         });
     }, []);
 
@@ -38,7 +57,7 @@ const Menu = () => {
                     </div>
                 </div>
 
-                <div className={"nk-loading-container " + ((bar > 0)? "show" : "")}>
+                {/* <div className={"nk-loading-container " + ((bar > 0)? "show" : "")}>
                     <div className="nk-load-circle noselect">
                         <FontAwesomeIcon icon={solid("circle-notch")} spin />
                     </div>
@@ -51,13 +70,13 @@ const Menu = () => {
                     <div className="nk-load-hover noselect">
                         {app.currentUpload}
                     </div>
-                </div>
+                </div> */}
 
                 <div className="nk-center-side"></div>
                 <div className="nk-side-tools">
 
                         <button
-                            className={"nk-tool-btn fast-add " + ((app.menuStats.send)? "" : "disable")}
+                            className="nk-tool-btn fast-add"
                             onClick={() => {
                                 ipcRenderer.invoke("setProject", {
                                     id: makeId(),
@@ -78,7 +97,7 @@ const Menu = () => {
                             </small>
                         </button>
                         <button
-                            className={"nk-tool-btn " + ((app.menuStats.send)? "" : "disable")}
+                            className="nk-tool-btn"
                             onClick={() => {
                                 let id = makeId();
                                 app.setProjectPopup(
@@ -105,12 +124,12 @@ const Menu = () => {
                             </small>
                         </button>
                         <button
-                            className={"nk-tool-btn " + ((app.menuStats.send)? "" : "disable")}
+                            className={"nk-tool-btn " + (!canImport ? "disable" : "")}
                             onClick={(e) => {
                                 ipcRenderer.send('importProject');
                             }}
                         >
-                            <FontAwesomeIcon icon={solid('file-arrow-down')} />
+                            {importIcon}
                             <small className="nk-tool-popup noselect">
                                 Import project
                             </small>

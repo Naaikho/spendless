@@ -29,12 +29,12 @@ const AppContextEmbed = () => {
     const [currentProject, setCurrentProject] = React.useState([]);
     const [currentUpload, setCurrentUpload] = React.useState("");
 
-    const [menuStats, setMenuStats] = React.useState({
-        send: false
-    });
-    const [currentProcessed, setCurrentProcessed] = React.useState("");
+    // const [menuStats, setMenuStats] = React.useState({
+    //     send: false
+    // });
+    const [currentProcessed, setCurrentProcessed] = React.useState([]);
 
-    const app = {cfg,setCfg,preferences,setPreferences,user,setUser,icons,setIcons,colors,setColors,menuOpen,setMenuOpen,menuSelected,setMenuSelected,projects,setProjects,haveData,setHaveData,popup,setPopup,envPage,setEnvPage,confPopup,setConfPopup,projectPopup,setProjectPopup,currentProject,setCurrentProject,currentUpload,setCurrentUpload,menuStats,setMenuStats,currentProcessed,setCurrentProcessed};
+    const app = {cfg,setCfg,preferences,setPreferences,user,setUser,icons,setIcons,colors,setColors,menuOpen,setMenuOpen,menuSelected,setMenuSelected,projects,setProjects,haveData,setHaveData,popup,setPopup,envPage,setEnvPage,confPopup,setConfPopup,projectPopup,setProjectPopup,currentProject,setCurrentProject,currentUpload,setCurrentUpload,currentProcessed,setCurrentProcessed};
 
     React.useEffect(() => {
 
@@ -64,9 +64,9 @@ const AppContextEmbed = () => {
             setHaveData(data);
         });
 
-        ipcRenderer.invoke("sendStatus").then((data) => {
-            setMenuStats({...menuStats, send: data});
-        });
+        // ipcRenderer.invoke("sendStatus").then((data) => {
+        //     setMenuStats({...menuStats, send: data});
+        // });
 
         ipcRenderer.invoke("getProjects").then((data) => {
             setProjects(data);
@@ -75,15 +75,23 @@ const AppContextEmbed = () => {
 
         ipcRenderer.on("reloadProjects", () => {
             ipcRenderer.invoke("getProjects").then((data) => {
-                setProjects([
-                    ...data
-                ]);
+                setProjects(data);
             });
         });
 
         ipcRenderer.on("setSend", (e, data) => {
-            setMenuStats({...menuStats, send: data.status});
-            setCurrentProcessed(data.id);
+            // setMenuStats({...menuStats, send: data.status});
+            console.log(data);
+            if(data.action === "add"){
+                setCurrentProcessed(currentProcessed => ([
+                    ...currentProcessed,
+                    data.id
+                ]));
+            } else if(data.action === "remove"){
+                setCurrentProcessed(currentProcessed => (
+                    currentProcessed.filter((item) => item !== data.id)
+                ));
+            }
         });
 
         ipcRenderer.on("setCurrent", (e, data) => {
@@ -95,6 +103,14 @@ const AppContextEmbed = () => {
         ipcRenderer.on("currentUpload", (e, data) => {
             setCurrentUpload(data);
         });
+
+        return () => {
+            ipcRenderer.removeAllListeners("alert");
+            ipcRenderer.removeAllListeners("reloadProjects");
+            ipcRenderer.removeAllListeners("setSend");
+            ipcRenderer.removeAllListeners("setCurrent");
+            ipcRenderer.removeAllListeners("currentUpload");
+        }
 
     }, []);
 

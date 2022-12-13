@@ -931,6 +931,7 @@ $item-cian: rgb(115, 211, 235);
         color: $dark;
         font-family: $current-font;
         color: $primary-color;
+        white-space: nowrap;
     }
 
     &.active{
@@ -1022,6 +1023,72 @@ $item-cian: rgb(115, 211, 235);
 }
 .cian{
     background-color: $item-cian;
+}
+
+
+.nk-loading-container{
+    transition: 0.25s;
+    width: 100%;
+    height: 7rem;
+    // background-color: $light-over;
+    color: $light;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    // opacity: 0;
+
+    .nk-load-hover{
+        transition: 0.15s;
+        padding: 4px 10px;
+        border-radius: 6px;
+        position: absolute;
+        top: 90%;
+        left: 50%;
+        // opacity: 0;
+        transform: translateX(-50%);
+        background-color: $light;
+        font-family: $brand-font;
+        color: $dark;
+        font-weight: 600;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 95%;
+    }
+
+    &.show{
+        opacity: 1;
+    }
+
+    .nk-load-circle{
+        color: $light;
+        font-size: 2rem;
+        margin-bottom: 5px;
+    }
+    
+    .nk-loading-bar{
+        height: 4px;
+        background-color: $light-over;
+        width: 75%;
+        border-radius: 5px;
+        margin-top: 10px;
+        overflow: hidden;
+
+        .nk-loading-fill{
+            transition: 0.25s;
+            height: 100%;
+            width: 0;
+            background-color: $light;
+            border-radius: 5px;
+        }
+    }
 }
 
 
@@ -2095,77 +2162,6 @@ html{
                 }
             }
 
-            .nk-loading-container{
-                transition: 0.25s;
-                width: 50px;
-                height: 50px;
-                // background-color: $light-over;
-                color: $light;
-                position: absolute;
-                left: 100px;
-                top: 50%;
-                transform: translateY(-50%);
-                z-index: 999;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                opacity: 0;
-
-                .nk-load-hover{
-                    transition: 0.15s;
-                    padding: 4px 10px;
-                    border-radius: 6px;
-                    position: absolute;
-                    top: 90%;
-                    left: 50%;
-                    opacity: 0;
-                    transform: translateX(-50%) rotateX(45deg);
-                    background-color: $primary-color;
-                    font-family: $brand-font;
-                    color: $dark;
-                    font-weight: 600;
-                    font-size: 0.9rem;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    max-width: 230px;
-                }
-
-                &.show{
-                    opacity: 1;
-                    
-                    &:hover{
-                        .nk-load-hover{
-                            top: 100%;
-                            opacity: 1;
-                            transform: translateX(-50%) rotateX(0deg);
-                        }
-                    }
-                }
-
-                .nk-load-circle{
-                    color: $primary-color;
-                    font-size: 1.2rem;
-                    margin-bottom: 5px;
-                }
-                
-                .nk-loading-bar{
-                    height: 4px;
-                    background-color: $primary-color-over;
-                    width: 100%;
-                    border-radius: 5px;
-
-                    .nk-loading-fill{
-                        transition: 0.25s;
-                        height: 100%;
-                        width: 0;
-                        background-color: $primary-color;
-                        border-radius: 5px;
-                    }
-                }
-            }
-
             .nk-side-tools{
                 display: flex;
                 justify-content: flex-end;
@@ -2450,8 +2446,8 @@ html{
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background-color: rgba(0,0,0,0.25);
-                    backdrop-filter: blur(2px);
+                    background-color: $dark-glass;
+                    // backdrop-filter: blur(2px);
                     color: $light;
                     z-index: 10;
                     font-size: 3rem;

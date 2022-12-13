@@ -2,6 +2,7 @@ import React, { useContext, useEffect } from 'react';
 import { solid } from '@fortawesome/fontawesome-svg-core/import.macro';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import AppContext from '../inc/AppContext';
+import { NkCheckbox } from '../components/Button';
 
 const ipcRenderer = window.require('electron').ipcRenderer;
 const path = window.require('path');
@@ -114,7 +115,7 @@ const Settings = () => {
                     </div>
                 </div>
 
-                <div className="nk-col-12 nk-row between stretch">
+                <div className="nk-col-12 nk-row between stretch mb">
                     <p className="nk-setting-label nk-col-3 noselect">
                         Base template
                     </p>
@@ -137,6 +138,21 @@ const Settings = () => {
                         >
                             <FontAwesomeIcon icon={solid("folder")} />
                         </button>
+                    </div>
+                </div>
+
+                <div className="nk-col-12 nk-row between stretch">
+                    <div className="nk-col-3 nk-form-layer">
+                        <NkCheckbox
+                            text="Update songs"
+                            checked={app.preferences.update}
+                            onChange={(status) => {
+                                ipcRenderer.send('setUpdateSongs', status);
+                                ipcRenderer.invoke('getPreferences').then((data) => {
+                                    app.setPreferences({...data});
+                                });
+                            }}
+                        />
                     </div>
                 </div>
 

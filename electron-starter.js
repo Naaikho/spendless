@@ -22,7 +22,10 @@ env["base_flp"] = path.join(__dirname, "flp", "base.flp");
 
 const bufferSize = 1024 * 20;
 
-const sock = io.connect(env.protocol + "://" + env.host + ":" + env.port);
+const sock = io.connect(env.protocol + "://" + env.host + ":" + env.port, {
+    timeout: 120000,
+    reconnectionDelayMax: 10000,
+});
 
 const bdec = (str)=>{
     return Buffer.from(str, 'base64').toString('utf-8');
@@ -68,7 +71,8 @@ if(!Object.entries(preferences).length){
         noname_menu: true,
         projects_menu: true,
         default_tempo: 130,
-        template: path.join(__dirname, "src", "assets", "flp", "base.flp")
+        template: path.join(__dirname, "src", "assets", "flp", "base.flp"),
+        update: true,
     };
 }
 
@@ -134,7 +138,11 @@ app.whenReady().then(() => {
     var main = createWindow();
 
     function ipcSend(channel, data="") {
-        main.webContents.send(channel, data);
+        try{
+            main.webContents.send(channel, data);
+        }catch(e){
+            console.log(e);
+        }
     }
 
     function isValidFlStudio(path="", scaled=false) {
@@ -188,30 +196,31 @@ app.whenReady().then(() => {
     });
 
     var processProject = {};
-    var fileBuffer = [];
+    // var fileBuffer = [];
     const cfgElements = {
         icons: 156,
         colors: 8,
     };
     var makeUpdate = [];
-    var onUpdate = false;
+    var onUpdate = {};
     var currents_proj = [];
     var userProjects = {};
+    var endFile = {};
+    var fileBuffer = {};
 
-    var inProcessing = false;
-    var progressing = 0;
-    var progress_value = 0;
-    var currUpdate = "";
-    var isEdit = false;
-    var isCreating = false;
-    var useTmp = false;
-    var basedSamples = false;
+    // var progressing = 0;
+    // var progress_value = 0;
+    var currUpdate = [];
+    var isEdit= {};
+    var isCreating = {};
+    var useTmp = {};
+    var basedSamples = {};
 
     var onOpen = false;
 
-    ipcMain.handle("sendStatus", ()=>{
-        return !inProcessing
-    });
+    // ipcMain.handle("sendStatus", ()=>{
+    //     return !inProcessing
+    // });
 
     // get projects
     ipcMain.handle('getProjects', () => {
@@ -340,7 +349,6 @@ app.whenReady().then(() => {
             };
 
 
-
             try{
                 let folderName = project.title.replace(/\.[^/.]+$/, "");
                 folderName = folderName.replace(/[^a-zA-Z0-9 ]/g, "");
@@ -356,13 +364,7 @@ app.whenReady().then(() => {
                         }
                     }
                 }
-
-                inProcessing = true;
-                ipcSend("setSend", {
-                    status: false,
-                    id: ""
-                });
-                progressing = 0;
+                
 
                 ipcSend("currentUpload", project.title);
 
@@ -382,10 +384,16 @@ app.whenReady().then(() => {
 
                 proj_file = benc(JSON.stringify(proj_file));
 
-                fileBuffer= [];
+                fileBuffer[project.id] = [];
 
+                let l = 0;
                 for(let i=0; i<proj_file.length; i+=bufferSize) {
-                    fileBuffer.push(proj_file.substring(i, i+bufferSize));
+                    fileBuffer[project.id].push(JSON.stringify({
+                        id: project.id,
+                        part: l,
+                        stream: proj_file.slice(i, i+bufferSize),
+                    }));
+                    l++;
                 }
 
                 if(!fs.existsSync(preferences.template)){
@@ -405,21 +413,68 @@ app.whenReady().then(() => {
                 };
                 console.log("send datas");
 
-                progressing = fileBuffer.length;
-                sock.emit("getFileInfo", fileBuffer[0]);
-                isCreating = true;
+                let progressing = fileBuffer[project.id].length;
+                isCreating[project.id] = true;
+                sock.emit("getFileInfo", fileBuffer[project.id][0]);
+                sock.off("continue_" + project.id);
+                sock.on("continue_" + project.id, (data)=>{
+                    try{
+                        while(true){
+                            if(fileBuffer[project.id].length > 1) {
+                                fileBuffer[project.id].shift();
+                                sock.emit("getFileInfo", fileBuffer[project.id][0]);
+                            } else {
+                                fileBuffer[project.id] = [];
+                                console.log("upload complete");
+                                sock.emit("getFileInfo", JSON.stringify({
+                                    id: project.id,
+                                    stream: "end"
+                                }));
+                                progressing = 0;
+                                ipcSend("loading", {
+                                    id: project.id,
+                                    value: 1
+                                });
+                                break;
+                            }
+                            ipcSend("loading", {
+                                value: ((progressing - fileBuffer[project.id].length)/progressing) * 100,
+                                id: project.id
+                            });
+                        }
+                    } catch(e){
+                        onUpdate[project.id] = false;
+                        currUpdate = currUpdate.filter((e)=>e !== project.id);
+                        console.log(e);
+                        isEdit[project.id] = false;
+                        ipcSend("alert", {
+                            status: "error",
+                            message: "Error while updating project. 🐞\n"+e,
+                        });
+                        ipcSend("loading", {
+                            id: project.id,
+                            value: 0
+                        });
+                        ipcSend("setSend", {
+                            action: "remove",
+                            id: project.id
+                        });
+                    }
+                });
             }catch(e){
                 console.log(e);
-                ipcSend("loading", 0);
+                ipcSend("loading", {
+                    id: project.id,
+                    value: 0
+                });
                 ipcSend("alert", {
                     status: "error",
                     message: "Error while creating project. 🐞\n" + e + "\n" + preferences.template + " " + env["base_flp"]
                 });
-                progressing = 0;
-                inProcessing = false;
+                isCreating[project.id] = false;
                 ipcSend("setSend", {
-                    status: true,
-                    id: ""
+                    action: "remove",
+                    id: project.id
                 });
             }
             return 1;
@@ -428,7 +483,7 @@ app.whenReady().then(() => {
                 status: "error",
                 message: "Error creating project: " + e
             });
-            isEdit = false;
+            isEdit[data.id] = false;
         }
         return 0;
     });
@@ -442,7 +497,7 @@ app.whenReady().then(() => {
             return;
         }
         try{
-            isEdit = true;
+            isEdit[data.id] = true;
             if(userProjects[data.id]){
 
                 let icon = data.icon;
@@ -472,39 +527,46 @@ app.whenReady().then(() => {
 
                 let comment = String(data.comment).trim();
 
-                // title
-                userProjects[data.id].data.title = title;
-                // artist
-                userProjects[data.id].data.artist = artist;
-                // tempo
-                userProjects[data.id].data.tempo = tempo;
-                // genre
-                userProjects[data.id].data.genre = genre;
-                // comment
-                userProjects[data.id].data.comment = comment;
-
                 userProjects[data.id].color = color;
                 userProjects[data.id].icon = icon;
+
+                if(data.update){
+                    // title
+                    userProjects[data.id].data.title = title;
+                    // artist
+                    userProjects[data.id].data.artist = artist;
+                    // tempo
+                    userProjects[data.id].data.tempo = tempo;
+                    // genre
+                    userProjects[data.id].data.genre = genre;
+                    // comment
+                    userProjects[data.id].data.comment = comment;
+                }
 
                 userProjects[data.id].renamed = true;
 
                 fs.writeFileSync(path.join(userProjects[data.id].data.dir, userProjects[data.id].jsonname), JSON.stringify(userProjects[data.id]));
 
-                makeUpdate.push(data.id);
+                if(data.update){
+                    console.log("update");
+                    makeUpdate.push(data.id);
+                } else {
+                    ipcSend("reloadProjects");
+                }
                 return 1;
             } else {
                 ipcSend("alert", {
                     status: "error",
                     message: "Error: project not found"
                 });
-                isEdit = false;
+                isEdit[data.id] = false;
             }
         } catch(e){
             ipcSend("alert", {
                 status: "error",
                 message: "Error editing project: " + e
             });
-            isEdit = false;
+            isEdit[data.id] = false;
         }
         return 0;
     });
@@ -520,7 +582,7 @@ app.whenReady().then(() => {
             return;
         }
 
-        if(currUpdate === id){
+        if(currUpdate.includes(id)){
             ipcSend("alert", {
                 status: "error",
                 message: "You can't delete a project that is updating ⛔"
@@ -543,13 +605,13 @@ app.whenReady().then(() => {
 
     ipcMain.on("importProject", (e, data)=>{
 
-        if(inProcessing){
-            ipcSend("alert", {
-                status: "error",
-                message: "You can't import multiple projects at the same time. ⛔"
-            });
-            return;
-        }
+        // if(inProcessing){
+        //     ipcSend("alert", {
+        //         status: "error",
+        //         message: "You can't import multiple projects at the same time. ⛔"
+        //     });
+        //     return;
+        // }
 
         // ask file to user
         dialog.showOpenDialog({
@@ -568,10 +630,10 @@ app.whenReady().then(() => {
 
                 if(res.filePaths[0].split(".")[res.filePaths[0].split(".").length-1]=== "spend" || isZip){
 
-                    basedSamples = true;
-
                     // make uniq id
                     let projectId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15); 
+
+                    basedSamples[projectId] = true;
 
                     let zip = new JSZip();
                     let spend = null;
@@ -601,18 +663,15 @@ app.whenReady().then(() => {
                             status: "error",
                             message: "This project was created with a different version of SpendLess. ⛔"
                         });
-                        basedSamples = false;
+                        basedSamples[projectId] = false;
                         return;
                     }
 
                     function importContinue(flpName=""){
-
-                        ipcSend("loading", 1);
                         // read binary file with sync
-                        inProcessing = true;
                         ipcSend("setSend", {
-                            status: false,
-                            id: ""
+                            action: "import",
+                            id: projectId,
                         });
 
                         if(isZip){
@@ -621,14 +680,16 @@ app.whenReady().then(() => {
                                     status: "error",
                                     message: "This zip file doesn't contain a .flp file. ⛔"
                                 });
-                                progressing = 0;
-                                inProcessing = false;
-                                useTmp = false;
-                                ipcSend("setSend", {
-                                    status: true,
-                                    id: ""
+                                ipcSend("loading", {
+                                    id: projectId,
+                                    value: 0
                                 });
-                                basedSamples = false;
+                                useTmp[projectId] = false;
+                                ipcSend("setSend", {
+                                    action: "unimport",
+                                    id: projectId,
+                                });
+                                basedSamples[projectId] = false;
                                 return;
                             }
                             spend.filename = flpName;
@@ -662,10 +723,16 @@ app.whenReady().then(() => {
 
                             proj_file = benc(JSON.stringify(proj_file));
 
-                            fileBuffer= [];
+                            fileBuffer[projectId] = [];
 
+                            let l = 0;
                             for(let i=0; i<proj_file.length; i+=bufferSize) {
-                                fileBuffer.push(proj_file.substring(i, i+bufferSize));
+                                fileBuffer[projectId].push(JSON.stringify({
+                                    id: projectId,
+                                    part: l,
+                                    stream: proj_file.slice(i, i+bufferSize),
+                                }));
+                                l++;
                             }
                             processProject[projectId] = {
                                 id: projectId,
@@ -678,22 +745,68 @@ app.whenReady().then(() => {
                             };
                             console.log("send datas");
 
-                            progressing = fileBuffer.length;
-                            sock.emit("getFileInfo", fileBuffer[0]);
+                            let progressing = fileBuffer[projectId].length;
+                            sock.emit("getFileInfo", fileBuffer[projectId][0]);
+                            sock.off("continue_" + projectId);
+                            sock.on("continue_" + projectId, (data)=>{
+                                try{
+                                    while(true){
+                                        if(fileBuffer[projectId].length > 1) {
+                                            fileBuffer[projectId].shift();
+                                            sock.emit("getFileInfo", fileBuffer[projectId][0]);
+                                        } else {
+                                            fileBuffer[projectId] = [];
+                                            console.log("upload complete");
+                                            sock.emit("getFileInfo", JSON.stringify({
+                                                id: projectId,
+                                                stream: "end"
+                                            }));
+                                            progressing = 0;
+                                            ipcSend("loading", {
+                                                id: projectId,
+                                                value: 1
+                                            });
+                                            break;
+                                        }
+                                        ipcSend("loading", {
+                                            value: ((progressing - fileBuffer[projectId].length)/progressing) * 100,
+                                            id: projectId
+                                        });
+                                    }
+                                } catch(e){
+                                    onUpdate[projectId] = false;
+                                    currUpdate = currUpdate.filter((e)=>e !== projectId);
+                                    console.log(e);
+                                    isEdit[projectId] = false;
+                                    ipcSend("alert", {
+                                        status: "error",
+                                        message: "Error while updating project. 🐞\n"+e,
+                                    });
+                                    ipcSend("loading", {
+                                        id: projectId,
+                                        value: 0
+                                    });
+                                    ipcSend("setSend", {
+                                        action: "remove",
+                                        id: projectId
+                                    });
+                                }
+                            });
                         }catch(e){
                             console.log(e);
-                            ipcSend("loading", 0);
+                            ipcSend("loading", {
+                                id: projectId,
+                                value: 0
+                            });
                             ipcSend("alert", {
                                 status: "error",
                                 message: "Error while importing project. 🐞"
                             });
-                            basedSamples = false;
-                            progressing = 0;
-                            inProcessing = false;
-                            useTmp = false;
+                            basedSamples[projectId] = false;
+                            useTmp[projectId] = false;
                             ipcSend("setSend", {
-                                status: true,
-                                id: ""
+                                action: "unimport",
+                                id: projectId,
                             });
                         }
                     }
@@ -702,7 +815,7 @@ app.whenReady().then(() => {
 
                         try{
                             fs.mkdirSync(savePath, { recursive: true });
-                            useTmp = true;
+                            useTmp[projectId] = true;
 
                             let i = 0;
                             let flpName = "";
@@ -726,18 +839,20 @@ app.whenReady().then(() => {
                             });
                         }catch(e){
                             console.log(e);
-                            ipcSend("loading", 0);
+                            ipcSend("loading", {
+                                id: projectId,
+                                value: 0
+                            });
                             ipcSend("alert", {
                                 status: "error",
                                 message: "Error while importing project. 🐞"
                             });
-                            progressing = 0;
-                            inProcessing = false;
-                            useTmp = false;
-                            basedSamples = false;
+                            // progressing = 0;
+                            useTmp[projectId] = false;
+                            basedSamples[projectId] = false;
                             ipcSend("setSend", {
-                                status: true,
-                                id: ""
+                                action: "unimport",
+                                id: projectId,
                             });
                         }
                     });
@@ -747,17 +862,19 @@ app.whenReady().then(() => {
 
                 if(res.filePaths[0].split(".")[res.filePaths[0].split(".").length-1]=== "flp"){
 
-                    basedSamples = false;
-
                     // make uniq id
                     let projectId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15); 
 
-                    ipcSend("loading", 1);
+                    basedSamples[projectId] = false;
+
+                    ipcSend("loading", {
+                        id: projectId,
+                        value: 1
+                    });
                     // read binary file with sync
-                    inProcessing = true;
                     ipcSend("setSend", {
-                        status: false,
-                        id: ""
+                        action: "import",
+                        id: projectId,
                     });
                     // mkdir in env["storage"]/projects a folder with file name without extension and special char and replace space by _
                     try{
@@ -788,10 +905,16 @@ app.whenReady().then(() => {
 
                         proj_file = benc(JSON.stringify(proj_file));
 
-                        fileBuffer= [];
+                        fileBuffer[projectId] = [];
 
+                        let l = 0;
                         for(let i=0; i<proj_file.length; i+=bufferSize) {
-                            fileBuffer.push(proj_file.substring(i, i+bufferSize));
+                            fileBuffer[projectId].push(JSON.stringify({
+                                id: projectId,
+                                part: l,
+                                stream: proj_file.slice(i, i+bufferSize),
+                            }));
+                            l++;
                         }
                         processProject[projectId] = {
                             id: projectId,
@@ -804,20 +927,66 @@ app.whenReady().then(() => {
                         };
                         console.log("send datas");
 
-                        progressing = fileBuffer.length;
-                        sock.emit("getFileInfo", fileBuffer[0]);
+                        let progressing = fileBuffer[projectId].length;
+                        sock.emit("getFileInfo", fileBuffer[projectId][0]);
+                        sock.off("continue_" + projectId);
+                        sock.on("continue_" + projectId, (data)=>{
+                            try{
+                                while(true){
+                                    if(fileBuffer[projectId].length > 1) {
+                                        fileBuffer[projectId].shift();
+                                        sock.emit("getFileInfo", fileBuffer[projectId][0]);
+                                    } else {
+                                        fileBuffer[projectId] = [];
+                                        console.log("upload complete");
+                                        sock.emit("getFileInfo", JSON.stringify({
+                                            id: projectId,
+                                            stream: "end"
+                                        }));
+                                        progressing = 0;
+                                        ipcSend("loading", {
+                                            id: projectId,
+                                            value: 1
+                                        });
+                                        break;
+                                    }
+                                    ipcSend("loading", {
+                                        value: ((progressing - fileBuffer[projectId].length)/progressing) * 100,
+                                        id: projectId
+                                    });
+                                }
+                            } catch(e){
+                                onUpdate[projectId] = false;
+                                currUpdate = currUpdate.filter((e)=>e !== projectId);
+                                console.log(e);
+                                isEdit[projectId] = false;
+                                ipcSend("alert", {
+                                    status: "error",
+                                    message: "Error while updating project. 🐞\n"+e,
+                                });
+                                ipcSend("loading", {
+                                    id: projectId,
+                                    value: 0
+                                });
+                                ipcSend("setSend", {
+                                    action: "remove",
+                                    id: projectId
+                                });
+                            }
+                        });
                     }catch(e){
                         console.log(e);
-                        ipcSend("loading", 0);
+                        ipcSend("loading", {
+                            id: projectId,
+                            value: 0
+                        });
                         ipcSend("alert", {
                             status: "error",
                             message: "Error while importing project. 🐞"
                         });
-                        progressing = 0;
-                        inProcessing = false;
                         ipcSend("setSend", {
-                            status: true,
-                            id: ""
+                            action: "unimport",
+                            id: projectId,
                         });
                     }
                 }
@@ -938,37 +1107,40 @@ app.whenReady().then(() => {
 
 
 
-    ipcMain.on("updateProjects", (e, data)=>{
+    ipcMain.on("updateProjects", (projectId)=>{
         console.log("updateProjects");
 
-        if(inProcessing){
-            return;
-        }
+        // if(inProcessing){
+        //     return;
+        // }
 
-        ipcSend("loading", 1);
-        onUpdate = true;
-        inProcessing = true;
+        ipcSend("loading", {
+            id: projectId,
+            value: 1
+        });
+        onUpdate[projectId] = true;
         try{
             let p = makeUpdate[0];
             makeUpdate.shift();
             p = userProjects[p];
             ipcSend("currentUpload", p.data.title);
-            currUpdate = p.id;
-            if(currents_proj.includes(currUpdate)){
-                onUpdate = false;
-                inProcessing = false;
-                currUpdate = "";
-                isEdit = false;
-                ipcSend("loading", 0);
+            if(currents_proj.includes(p.id)){
+                onUpdate[projectId] = false;
+                isEdit[p.id] = false;
+                ipcSend("loading", {
+                    id: projectId,
+                    value: 0
+                });
                 ipcSend("setSend", {
-                    status: true,
-                    id: ""
+                    action: "remove",
+                    id: p.id
                 });
                 return;
             }
+            currUpdate.push(p.id);
             ipcSend("setSend", {
-                status: false,
-                id: currUpdate
+                action: "add",
+                id: p.id
             });
             let toSend = {
                 id: p.id,
@@ -986,105 +1158,186 @@ app.whenReady().then(() => {
                 toSend.edit_comment = p.data.comment
             }
             toSend = benc(JSON.stringify(toSend));
-            fileBuffer = [];
+            fileBuffer[p.id] = [];
+            let l = 0;
             for(let i=0; i<toSend.length; i+=bufferSize) {
-                fileBuffer.push(toSend.substring(i, i+bufferSize));
+                fileBuffer[p.id].push(JSON.stringify({
+                    id: p.id,
+                    part: l,
+                    stream: toSend.slice(i, i+bufferSize),
+                }));
+                l++;
             }
-            progressing = fileBuffer.length;
-            sock.emit("getFileInfo", fileBuffer[0]);
+            let progressing = fileBuffer[p.id].length;
+            sock.emit("getFileInfo", fileBuffer[p.id][0]);
+            sock.off("continue_" + p.id);
+            sock.on("continue_" + p.id, (data)=>{
+                try{
+                    while(true){
+                        if(fileBuffer[p.id].length > 1) {
+                            fileBuffer[p.id].shift();
+                            sock.emit("getFileInfo", fileBuffer[p.id][0]);
+                        } else {
+                            fileBuffer[p.id] = [];
+                            console.log("upload complete");
+                            sock.emit("getFileInfo", JSON.stringify({
+                                id: p.id,
+                                stream: "end"
+                            }));
+                            progressing = 0;
+                            ipcSend("loading", {
+                                id: p.id,
+                                value: 1
+                            });
+                            break;
+                        }
+                        ipcSend("loading", {
+                            value: ((progressing - fileBuffer[p.id].length)/progressing) * 100,
+                            id: p.id
+                        });
+                    }
+                } catch(e){
+                    onUpdate[p.id] = false;
+                    currUpdate = currUpdate.filter((e)=>e !== p.id);
+                    console.log(e);
+                    isEdit[p.id] = false;
+                    ipcSend("alert", {
+                        status: "error",
+                        message: "Error while updating project. 🐞\n"+e,
+                    });
+                    ipcSend("loading", {
+                        id: p.id,
+                        value: 0
+                    });
+                    ipcSend("setSend", {
+                        action: "remove",
+                        id: p.id
+                    });
+                }
+            });
         }catch(e){
-            onUpdate = false;
-            inProcessing = false;
-            currUpdate = "";
+            onUpdate[projectId] = false;
+            currUpdate = currUpdate.filter((e)=>e !== projectId);
             console.log(e);
-            isEdit = false;
+            isEdit[projectId] = false;
             ipcSend("alert", {
                 status: "error",
                 message: "Error while updating project. 🐞\n"+e,
             });
-            ipcSend("loading", 0);
+            ipcSend("loading", {
+                id: projectId,
+                value: 0
+            });
             ipcSend("setSend", {
-                status: true,
-                id: ""
+                action: "remove",
+                id: projectId
             });
         }
     });
 
-    sock.on('upload', ()=>{
-        try{
-            if(fileBuffer.length > 1) {
-                fileBuffer.shift();
-                sock.emit("getFileInfo", fileBuffer[0]);
-            } else {
-                fileBuffer = [];
-                console.log("upload complete");
-                sock.emit("getFileInfo", "end");
-                progressing = 0;
-                progress_value = 0;
-                ipcSend("loading", 1);
-                return;
-            }
-            ipcSend("loading", ((progressing - fileBuffer.length)/progressing) * 100);
-        }catch(e){
-            ipcSend("alert", {
-                status: "error",
-                message: "Error while uploading project. 🐞\n"+e,
-            });
-            isEdit = false;
-            inProcessing = false;
-            onUpdate = false;
-            currUpdate = "";
-            isCreating = false;
-            ipcSend("loading", 0);
-            ipcSend("setSend", {
-                status: true,
-                id: ""
-            });
+    // sock.on('upload', ()=>{
+    //     try{
+    //         console.log("AHHHHHHH");
+    //         while(true){
+    //             if(fileBuffer[eid].length > 1) {
+    //                 fileBuffer[eid].shift();
+    //                 sock.emit("getFileInfo", fileBuffer[eid][0]);
+    //             } else {
+    //                 fileBuffer[eid] = [];
+    //                 console.log("upload complete");
+    //                 sock.emit("getFileInfo", JSON.stringify({
+    //                     id:,
+    //                     stream: "end"
+    //                 }));
+    //                 progressing = 0;
+    //                 progress_value = 0;
+    //                 break;
+    //             }
+    //             ipcSend("loading", ((progressing - fileBuffer[eid].length)/progressing) * 100, project.id);
+    //         }
+    //         return;
+    //     }catch(e){
+    //         ipcSend("alert", {
+    //             status: "error",
+    //             message: "Error while uploading project. 🐞\n"+e,
+    //         });
+    //         isEdit[ide] = false;
+    //         onUpdate[projectId] = false;
+    //         currUpdate = currUpdate.filter((e)=>e !== err.id);
+    //         isCreating[eid] = false;
+    //         ipcSend("setSend", {
+    //             status: true,
+    //             id: ""
+    //         });
+    //     }
+    // });
+
+    sock.on("setStatus", (data)=>{
+        if(data){
+            data = JSON.parse(data);
+            ipcSend("setStatus", data);
         }
     });
 
-    var endFile = "";
     sock.on("endProcess", (data)=>{
+        data = JSON.parse(data);
 
-        if(data === "end"){
+        if(!endFile[data.id]){
+            endFile[data.id] = [];
+        }
 
-            progress_value = 0;
-            progressing = 0;
-            ipcSend("loading", 0);
+        if(data.stream === "end"){
+
+            ipcSend("loading", {
+                id: data.id,
+                value: 0
+            });
 
             try{
-                endFile = JSON.parse(bdec(endFile));
-                endFile.flp = bdec_bin(endFile.flp);
+                let tmp = [];
+
+                endFile[data.id].forEach(elm => {
+                    for(let i=0; i<endFile[data.id].length; i++) {
+                        if(elm.part === i) {
+                            tmp.push(elm.stream);
+                            break;
+                        }
+                    }
+                });
+                endFile[data.id] = tmp.join("");
+
+                endFile[data.id] = JSON.parse(bdec(endFile[data.id]));
+                endFile[data.id].flp = bdec_bin(endFile[data.id].flp);
             } catch(e){
                 console.log(e);
                 ipcSend("alert", {
                     status: "error",
                     message: "Error while processing project. 🐞\n"+e,
                 });
-                isEdit = false;
-                inProcessing = false;
-                onUpdate = false;
-                currUpdate = "";
-                isCreating = false;
-                basedSamples = false;
+                isEdit[data.id] = false;
+                onUpdate[data.id] = false;
+                currUpdate = currUpdate.filter((e)=>e !== data.id);
+                isCreating[data.id] = false;
+                basedSamples[data.id] = false;
+                endFile[data.id] = [];
                 ipcSend("setSend", {
-                    status: true,
-                    id: ""
+                    action: "remove",
+                    id: data.id
                 });
                 return;
             }
 
-            if(onUpdate){
+            if(onUpdate[data.id]){
                 
                 try{
                     console.log("start final update");
-                    let id = endFile.id;
-                    let flp = endFile.flp;
-                    let folderName = path.basename(endFile.dir).toLowerCase();
-                    delete endFile.id;
-                    delete endFile.flp;
-                    userProjects[id].data = endFile;
-                    endFile = "";
+                    let id = endFile[data.id].id;
+                    let flp = endFile[data.id].flp;
+                    let folderName = path.basename(endFile[data.id].dir).toLowerCase();
+                    delete endFile[data.id].id;
+                    delete endFile[data.id].flp;
+                    userProjects[id].data = endFile[data.id];
+                    endFile[data.id] = [];
 
                     let sampleDir = path.join(env["storage"], 'projects', folderName, "samples");
                     if(!fs.existsSync(sampleDir)){
@@ -1127,15 +1380,21 @@ app.whenReady().then(() => {
 
                     userProjects[id].last_edited = getLastModified(userProjects[id].filepath);
 
+
                     fs.writeFileSync(path.join(userProjects[id].data.dir, userProjects[id].jsonname), JSON.stringify(userProjects[id]));
 
-                    onUpdate = false;
-                    inProcessing = false;
-                    currUpdate = "";
-                    isEdit = false;
+
+                    ipcSend("setStatus", {
+                        id: id,
+                        status: "",
+                        step: [0,0]
+                    });
+                    onUpdate[id] = false;
+                    currUpdate = currUpdate.filter((e)=>e !== id);
+                    isEdit[id] = false;
                     ipcSend("setSend", {
-                        status: true,
-                        id: ""
+                        action: "remove",
+                        id: id
                     });
                     ipcSend("reloadProjects");
                     ipcSend("alert", {
@@ -1148,28 +1407,33 @@ app.whenReady().then(() => {
                         status: "error",
                         message: "Error while updating project: " + e + " 🐞",
                     });
-                    onUpdate = false;
-                    inProcessing = false;
-                    currUpdate = "";
-                    isEdit = false;
+                    ipcSend("setStatus", {
+                        id: data.id,
+                        status: "",
+                        step: [0,0]
+                    });
+                    onUpdate[data.id] = false;
+                    currUpdate = currUpdate.filter((e)=>e !== data.id);
+                    isEdit[data.id] = false;
+                    endFile[data.id] = [];
                     ipcSend("setSend", {
-                        status: true,
-                        id: ""
+                        action: "remove",
+                        id: data.id
                     });
                 }
 
             } else {
                 try{
                     console.log("start final process");
-                    let id = endFile.id;
-                    let flp = endFile.flp;
-                    let folderName = path.basename(endFile.dir).toLowerCase();
-                    delete endFile.id;
-                    delete endFile.flp;
-                    processProject[id].data = endFile;
+                    let id = endFile[data.id].id;
+                    let flp = endFile[id].flp;
+                    let folderName = path.basename(endFile[id].dir).toLowerCase();
+                    delete endFile[id].id;
+                    delete endFile[id].flp;
+                    processProject[id].data = endFile[id];
                     processProject[id].jsonname = folderName + ".json";
                     
-                    endFile = "";
+                    endFile[id] = [];
 
                     processProject[id].filename = folderName + ".flp";
 
@@ -1184,7 +1448,7 @@ app.whenReady().then(() => {
                     let sampleDir = path.join(env["storage"], 'projects', folderName, "samples");
                     fs.mkdirSync(sampleDir);
 
-                    if(basedSamples){
+                    if(basedSamples[id]){
                         for(let i=0; i<processProject[id].data.samples.length; i++){
                             let s_name = path.basename(processProject[id].data.samples[i]);
                             let s_path = path.join(path.dirname(processProject[id].filepath), s_name);
@@ -1231,57 +1495,75 @@ app.whenReady().then(() => {
 
                     console.log("end process");
 
-                    if(isCreating){
+                    if(isCreating[id]){
                         // open project
                         ipcMain.emit("openProject", null, id);
                     }
 
-                    if(useTmp){
+                    if(useTmp[id]){
                         fs.rmSync(path.join(env["storage"], "tmp", id), {force: true, recursive: true, maxRetries: 3, retryDelay: 100});
                     }
 
                     delete processProject[id];
-                    fileBuffer = [];
+                    ipcSend("setStatus", {
+                        id: id,
+                        status: "",
+                        step: [0,0]
+                    });
                     ipcSend("alert", {
                         status: "ok",
                         message: "Project loaded ! 🎉",
                     });
                     ipcSend("reloadProjects");
-                    inProcessing = false;
-                    currUpdate = "";
-                    isCreating = false;
-                    useTmp = false;
-                    basedSamples = false;
+                    currUpdate = currUpdate.filter((e)=>e !== id);
+                    isCreating[id] = false;
+                    useTmp[id] = false;
+                    basedSamples[id] = false;
+                    endFile[id] = [];
                     ipcSend("setSend", {
-                        status: true,
-                        id: ""
+                        action: "remove",
+                        id: id
                     });
+                    if(!isCreating[id]){
+                        ipcSend("setSend", {
+                            action: "unimport",
+                            id: id,
+                        });
+                    }
                 } catch(e){
                     ipcSend("alert", {
                         status: "error",
                         message: "Error while importing project: " + e + " 🐞",
                     });
-                    inProcessing = false;
-                    currUpdate = "";
-                    isCreating = false;
-                    useTmp = false;
-                    basedSamples = false;
+                    ipcSend("setStatus", {
+                        id: data.id,
+                        status: "",
+                        step: [0,0]
+                    });
+                    if(!isCreating[data.id]){
+                        ipcSend("setSend", {
+                            action: "unimport",
+                            id: data.id,
+                        });
+                    }
+                    currUpdate = currUpdate.filter((e)=>e !== data.id);
+                    isCreating[data.id] = false;
+                    useTmp[data.id] = false;
+                    basedSamples[data.id] = false;
+                    endFile[data.id] = [];
                     ipcSend("setSend", {
-                        status: true,
-                        id: ""
+                        action: "remove",
+                        id: data.id
                     });
                 }
             }
         } else {
-            progress_value++;
-            endFile += data;
-            sock.emit("sendBack");
-            ipcSend("loading", (progress_value / progressing) * 100);
+            endFile[data.id].push(data);
+            ipcSend("loading", ({
+                value: ((data.part+1) / data.size) * 100,
+                id: data.id
+            }));
         }
-    });
-
-    sock.on("progressingValue", (data)=>{
-        progressing = parseInt(data);
     });
 
 
@@ -1337,6 +1619,19 @@ app.whenReady().then(() => {
             ipcSend("alert", {
                 status: "error",
                 message: "Error while setting artist name ! 🐞\n" + e,
+            });
+        }
+    });
+
+    ipcMain.on("setUpdateSongs", (e, data)=>{
+        try{
+            console.log(data);
+            preferences.update = data;
+            savePreferences();
+        } catch(e){
+            ipcSend("alert", {
+                status: "error",
+                message: "Error while setting songs update ! 🐞\n" + e,
             });
         }
     });
@@ -1408,11 +1703,26 @@ app.whenReady().then(() => {
 
     sock.on('disconnect', ()=>{
         console.log("disconnected");
-        inProcessing = false;
-        currUpdate = "";
-        ipcSend("setSend", {
-            status: true,
-            id: ""
+        currUpdate = [];
+        // let projsLen = Object.keys(userProjects).length;
+        Object.entries(userProjects).forEach(([key, value])=>{
+            console.log("remove", value.id);
+            ipcSend("setSend", {
+                action: "remove",
+                id: value.id
+            });
+            isEdit[value.id] = false;
+            onUpdate[value.id] = false;
+            currUpdate = currUpdate.filter((e)=>e !== value.id);
+            isCreating[value.id] = false;
+            ipcSend("loading", {
+                id: value.id,
+                value: 0
+            });
+            ipcSend("setSend", {
+                action: "remove",
+                id: value.id
+            });
         });
         setTimeout(()=>{
             sock.connect();
@@ -1420,16 +1730,22 @@ app.whenReady().then(() => {
     });
 
     sock.on('error', (err)=>{
+        err = JSON.parse(err);
         ipcSend("alert", {
             status: "error",
-            message: "Error from server: " + err + " 🐞",
+            message: "Error from server: " + err.message + " 🐞",
         });
-        inProcessing = false;
-        currUpdate = "";
-        ipcSend("loading", 0);
+        isEdit[err.id] = false;
+        onUpdate[err.id] = false;
+        currUpdate = currUpdate.filter((e)=>e !== err.id);
+        isCreating[err.id] = false;
+        ipcSend("loading", {
+            id: err.id,
+            value: 0
+        });
         ipcSend("setSend", {
-            status: true,
-            id: ""
+            action: "remove",
+            id: err.id
         });
     });
 
@@ -1512,8 +1828,11 @@ app.whenReady().then(() => {
 
 
 
-        if(!onUpdate && makeUpdate.length > 0){
-            ipcMain.emit("updateProjects");
+        if(makeUpdate.length > 0 && preferences.update){
+            for(let i = 0; i < makeUpdate.length; i++){
+                console.log("update " + makeUpdate[i]);
+                ipcMain.emit("updateProjects", makeUpdate[i]);
+            }
         }
 
 
@@ -1541,7 +1860,7 @@ app.whenReady().then(() => {
                     if(!currents_proj.includes(key) && !makeUpdate.includes(key) && openeds.includes(value.filename)){
                         currents_proj.push(key);
                         ipcSend("setCurrent", currents_proj);
-                    } else if(currents_proj.includes(key) && !openeds.includes(value.filename) && getLastModified(value.filepath) > value.last_edited){
+                    } else if(currents_proj.includes(key) && !openeds.includes(value.filename) && getLastModified(value.filepath) > value.last_edited && !makeUpdate.includes(key)){
                         makeUpdate.push(key);
                         // delete id from currents_proj
                         currents_proj.splice(currents_proj.indexOf(key), 1);

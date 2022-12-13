@@ -5,6 +5,7 @@ import AppContext from '../../inc/AppContext';
 import GhostExit from '../../components/Ghost';
 import { DeletePopup, ExportPopup, ProjectPopup } from '../../components/Popup';
 import { createPopup } from '../../inc/Function.inc';
+import { useEffect } from 'react';
 
 const ipcRenderer = window.require('electron').ipcRenderer;
 
@@ -15,6 +16,9 @@ const Project = (props) => {
     const [openMenu, setOpenMenu] = React.useState(false);
     const [prevAudio, setPrevAudio] = React.useState(null);
     const [playBtn, setPlayBtn] = React.useState(solid("play"));
+
+    const [bar, setBar] = React.useState(0);
+    const [barStatus, setBarStatus] = React.useState("");
 
     const mouseCoor = {
         x: 0,
@@ -33,6 +37,35 @@ const Project = (props) => {
         land.push(<span key={i}><FontAwesomeIcon key={i} icon={icon} /></span>);
     }
 
+    useEffect(() => {
+        console.log("AAHAHAHAHAHHAHAHAHHHAHAHH");
+        ipcRenderer.on("loading", (e, data) => {
+            // console.log(e, data);
+            // console.log(data.id);
+            if(data.id === props.id){
+                setBar(parseInt(data.value));
+            }
+        });
+
+        ipcRenderer.on("setStatus", (e, data) => {
+            if(data.id === props.id){
+                setBarStatus(data.status);
+                if(data.step){
+                    let step = parseInt(data.step[0]);
+                    let total = parseInt(data.step[1]);
+                    setBar((step / total) * 100);
+                }
+            }
+        });
+
+        return () => {
+            ipcRenderer.removeAllListeners("loading");
+            ipcRenderer.removeAllListeners("setStatus");
+        }
+    }, [props.id, app, app.projects]);
+
+    // console.log(app.currentProject);
+
     return (
         <>
             {
@@ -42,7 +75,7 @@ const Project = (props) => {
                 }} /> : null
             }
             <div
-                className={"nk-project-file " + ((app.currentProject.includes(props.id))? "open " : "") + ((app.currentProcessed === props.id)? "disable" : "")}
+                className={"nk-project-file " + ((app.currentProject.includes(props.id))? "open " : "") + ((app.currentProcessed.includes(props.id))? "disable" : "")}
                 onClick={(e) => {
                     ipcRenderer.send('openProject', props.id);
                 }}
@@ -112,7 +145,21 @@ const Project = (props) => {
                     }}
                 >
                     <div className="nk-wait-overlay">
-                        <FontAwesomeIcon icon={solid("circle-notch")} spin />
+                        {/* <FontAwesomeIcon icon={solid("circle-notch")} spin /> */}
+                        <div className={"nk-loading-container " + ((bar > 0)? "show" : "")}>
+                            <div className="nk-load-circle noselect">
+                                <FontAwesomeIcon icon={solid("circle-notch")} spin />
+                            </div>
+                            <div className="nk-loading-bar noselect">
+                                <div
+                                    className="nk-loading-fill"
+                                    style={{width: bar + "%"}}
+                                ></div>
+                            </div>
+                            <div className="nk-load-hover noselect">
+                                {props.name} {(barStatus)? "-" : ""} {barStatus}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="nk-complet-version noselect">
@@ -179,7 +226,7 @@ const Project = (props) => {
                     <div className="nk-proj-tab">
 
                         <button
-                            className={"nk-pt-btn " + ((app.menuStats.send && !app.currentProject.includes(props.id))? "" : "disable")}
+                            className="nk-pt-btn"
                             onClick={(e)=>{
                                 e.stopPropagation();
                                 setOpenMenu(false);
@@ -230,9 +277,11 @@ const Project = (props) => {
                                 e.stopPropagation();
                                 setOpenMenu(false);
 
-                                if(!app.menuStats.send){
-                                    createPopup(app, "ok", props.name + " added to the queue ! ⏳");
-                                }
+                                // if(!app.menuStats.send){
+                                //     createPopup(app, "ok", props.name + " added to the queue ! ⏳");
+                                // }
+
+                                console.log("UPDATE:", props.id);
 
                                 ipcRenderer.send("upProject", props.id);
                             }}
